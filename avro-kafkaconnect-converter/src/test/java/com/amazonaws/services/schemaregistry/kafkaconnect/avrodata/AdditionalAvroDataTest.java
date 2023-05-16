@@ -20,6 +20,7 @@ package com.amazonaws.services.schemaregistry.kafkaconnect.avrodata;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 
 import io.test.avro.core.AvroMessage;
 import io.test.avro.doc.DocTestRecord;
@@ -35,16 +36,18 @@ import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.reflect.Union;
 import org.apache.avro.specific.SpecificData;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import uk.co.jemos.podam.api.PodamFactory;
 import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 public class AdditionalAvroDataTest
 {
     private AvroData avroData;
-    @Before
+    @BeforeEach
     public void before(){
         AvroDataConfig avroDataConfig = new AvroDataConfig.Builder()
                 .with(AvroDataConfig.SCHEMAS_CACHE_SIZE_CONFIG, 1)
@@ -92,6 +95,41 @@ public class AdditionalAvroDataTest
         Schema outputAvroSchema = avroData.fromConnectSchema(connectSchema);
 
         Assert.assertEquals(avroSchema, outputAvroSchema);
+    }
+
+    @Test
+    public void testMapSchema() throws IOException
+    {
+        // Here is a schema complex union schema
+        Schema avroSchema = new Parser().parse(new File("src/test/avro/TestSchema.avsc"));
+
+        org.apache.kafka.connect.data.Schema connectSchema = avroData.toConnectSchema(avroSchema);
+
+        Schema outputAvroSchema = avroData.fromConnectSchema(connectSchema);
+
+        Assert.assertEquals(avroSchema, outputAvroSchema);
+    }
+
+    @Test
+    public void testMapData()
+    {
+        org.apache.kafka.connect.data.Schema schema = SchemaBuilder.struct()
+                .field("ratePlanExtId", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                .field("year", org.apache.kafka.connect.data.Schema.INT32_SCHEMA)
+                .field("dayAvailability", SchemaBuilder.map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA, org.apache.kafka.connect.data.Schema.INT32_SCHEMA).build())
+                .build();
+
+        Struct structRecord = new Struct(schema)
+                .put("ratePlanExtId", "BAR2")
+                .put("year", 2025)
+                .put("dayAvailability", Collections.singletonMap("25", 30));
+
+        org.apache.kafka.connect.data.SchemaAndValue connectSchemaAndValue = new SchemaAndValue(schema, structRecord);
+        avroData.fromConnectData(connectSchemaAndValue.schema(), connectSchemaAndValue.value());
+
+        System.out.println("ConnectSchema: " + connectSchemaAndValue);
+        System.out.println("ConnectSchema fields: " + connectSchemaAndValue.schema().fields());
+
     }
 
     @Test

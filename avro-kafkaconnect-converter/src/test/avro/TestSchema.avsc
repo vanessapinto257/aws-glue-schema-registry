@@ -1,0 +1,30 @@
+{
+  "name": "TestSchema",
+  "namespace": "io.test.avro.core",
+  "type": "record",
+  "fields": [
+    {
+      "name": "ratePlanExtId",
+      "type": "string"
+    },
+    {
+      "name": "roomTypeExtId",
+      "type": "string"
+    },
+    {
+      "name": "year",
+      "type": "int"
+    },
+    {
+      "name": "month",
+      "type": "int"
+    },
+    {
+      "name": "dayAvailability",
+      "type": {
+        "type": "map",
+        "values": "int"
+      }
+    }
+  ]
+}
